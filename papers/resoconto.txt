@@ -1,0 +1,21 @@
+https://link.springer.com/chapter/10.1007/978-3-642-02490-0_137 - vedere se ho accesso via politecnico
+
+Rice: 9k neuroni. For connection, I_j = \sum_i w(i,j)f(i), where f(i) = heaviside(v[i]-firing_threshold). Modello visivo. Supercomputer Cray XD1. No follow-up.
+
+Rosado-Munoz: Spike Response Model. Esempi di architettura neuronale su FPGA. Una Spartan 3. 378 LUT/Neurone circa, con notevole overhead per le connessioni.
+
+Wang: 4k neuroni. Polychronous NN (delays over the axons). 
+
+SCANDLE: Spike-based architecture using dedicated chips (ASIC? ASIP?)
+
+
+HOW to train a spiking neural network(weight learning)?
+
+Ambroise-Levi: 117 neuroni in 1598 LUTs (avg. 13.65 LUT/neurone !!!)
+
+
+OPTIMIZATIONS
+A-L:
+- Virgola fissa, 10 bits interi, 8 decimali
+- Moltiplicazione per 0.78125 per avere gli shift
+- Tenere roba in RAM (costo quadratico; disponibilità BRAM su V7?)

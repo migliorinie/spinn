@@ -1,0 +1,29 @@
+NOTARE:
+- La matrice S contiene le interconnessioni dei neuroni, eccitatorie e/o inibitorie. Potrei provare a fare un pattern stile Hebbian.
+- Considerare I come input del sistema: provare a inserire patterns (di nuovo, Hebbian learning)
+- LTD/LTP? Potenzialmente semplici da aggiungere (update dei pesi). Cercare papers.
+
+- k1 è l'unico fattore che moltiplica, quindi possiamo usare qualunque valore ci torni meglio per aggiustare. Il problema, ovviamente, è che per gli inibitori è variabile.
+- Possibilità: implementazioni separate? Addirittura usare Izhi per i Ni e AZ per i Ne?
+
+GOOD NEWS:
+- Usare la media cambia molto poco il risultato
+BAD NEWS:
+- Ahmadi-Zwolinski è tuttora selvaggiamente diverso da Izhikevic
+
+- Sto usando la libreria custom mtwist, linkarstaticamente se necessario. Info nell'header sotto /usr/include/mtwist
+
+TODO:
+- Topologia fissata, parallelo izhikevich e AZ
+- Slackare differenze, moltiplicazione di k1, media
+
+Time logging:
+- Pre-processing
+- Update di neurone singolo
+- Update di rete intera
+
+Versione C++ col neurone come oggetto
+
+Le reti ffwd e hebbiane
+
+Repo git

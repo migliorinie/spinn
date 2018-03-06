@@ -1,0 +1,3 @@
+gcc izhibase.c -o runizhi -lm -lmtwist
+
+DEVO FARE UN MAKEFILE
