@@ -46,8 +46,9 @@ with progressbar.ProgressBar(max_value=timelimit) as progress:
     v=v+0.5*(0.04*np.power(v,2)+5*v+140-u+I)
     u=u+np.multiply(a,(np.multiply(b,v)-u))
     progress.update(t)
- 
-firings = np.transpose(np.asarray(firings))
+
+firings = np.asarray(firings)
+firings = np.flipud(firings)
 
 imsave('pyprimo.bmp', np.ones(firings.shape) - firings)
 #plt.matshow(firings, cmap='Greys')

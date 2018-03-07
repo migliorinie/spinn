@@ -82,8 +82,8 @@ int main(int argc, char* argv[]) {
     const int sampleNeuron = 96;
     
     //1 to activate Ambroise-Levi, 0 to switch it off
-    int ALon = 1;
-    double ALnorm = 1.0 - 0.21875*ALon;
+    //int ALon = 1;
+    //double ALnorm = 1.0 - 0.21875*ALon;
     
     mt_seed();
     time_t t;
@@ -111,8 +111,13 @@ int main(int argc, char* argv[]) {
 
     double *vVec = (double*)malloc((Ne+Ni)*sizeof(double));
     double *uVec = (double*)malloc((Ne+Ni)*sizeof(double));
+    
+    double *vZVec = (double*)malloc((Ne+Ni)*sizeof(double));
+    double *uZVec = (double*)malloc((Ne+Ni)*sizeof(double));
 
     int *firings = (int*)malloc((Ne+Ni)*timesteps*sizeof(int));
+    int *Zfirings = (int*)malloc((Ne+Ni)*timesteps*sizeof(int));
+    
     double *sampleVTracer = (double*)malloc(timesteps*sizeof(double));
 
     // Initialization
@@ -131,6 +136,8 @@ int main(int argc, char* argv[]) {
 
         vVec[i] = -65;
         uVec[i] = bVec[i]*vVec[i];
+        vZVec[i] = -65;
+        uZVec[i] = bVec[i]*vVec[i];
         for(int j = 0; j<(Ne+Ni); j++) {
             sMat[i+j*(Ne+Ni)] = 0.5*mt_drand();
             //sMat[i+j*(Ne+Ni)] = 0.5*((double)rand()/RAND_MAX);
@@ -153,6 +160,8 @@ int main(int argc, char* argv[]) {
 
         vVec[i] = -65;
         uVec[i] = bVec[i]*vVec[i];
+        vZVec[i] = -65;
+        uZVec[i] = bVec[i]*vVec[i];
         for(int j = 0; j<(Ne+Ni); j++) {
             sMat[i+j*(Ne+Ni)] = -1*mt_drand();
             //sMat[i+j*(Ne+Ni)] = -1*((double)rand()/RAND_MAX);
@@ -164,6 +173,10 @@ int main(int argc, char* argv[]) {
     // Boolean hack definition?
     int *fired = (int*)malloc((Ne+Ni)*sizeof(int));
     
+    double *iZVec = (double*)malloc((Ne+Ni)*sizeof(double));
+    // Boolean hack definition?
+    int *Zfired = (int*)malloc((Ne+Ni)*sizeof(int));
+    
     //doublePrintMat(k1, Ne+Ni, 1);
     //doublePrintMat(k3, Ne+Ni, 1);
     
@@ -171,13 +184,19 @@ int main(int argc, char* argv[]) {
         
         sampleVTracer[step] = vVec[sampleNeuron];
         double sumVec[Ne+Ni];
+        double ZsumVec[Ne+Ni];
         for(int j = 0; j<(Ne+Ni); j++) {
             sumVec[j] = 0;
+            ZsumVec[j] = 0;
         }
         for(int i = 0; i<(Ne+Ni); i++) {
             iVec[i] = (i < Ne ? 5 : 2)*BMRandom();
-            fired[i] = vVec[i] > 30.0*ALnorm ? 1 : 0;
+            fired[i] = vVec[i] > 30.0 ? 1 : 0;
             firings[step * (Ne + Ni) + i] = fired[i];
+            
+            iZVec[i] = (i < Ne ? 5 : 2)*BMRandom();
+            Zfired[i] = vZVec[i] > 30.0 ? 1 : 0;
+            Zfirings[step * (Ne + Ni) + i] = Zfired[i];
 
             if (fired[i] == 1) {
                 vVec[i] = cVec[i];
@@ -186,28 +205,38 @@ int main(int argc, char* argv[]) {
                     sumVec[j] += sMat[i + j * (Ne + Ni)];
                 }
             }
+            if (Zfired[i] == 1) {
+                vZVec[i] = cVec[i];
+                uZVec[i] += dVec[i];
+                for (int j = 0; j < Ne + Ni; j++) {
+                    ZsumVec[j] += sMat[i + j * (Ne + Ni)];
+                }
+            }
         }
         for(int i = 0; i<(Ne+Ni); i++) {
-            iVec[i] = iVec[i] + sumVec[i]*ALnorm;
+            iVec[i] = iVec[i] + sumVec[i];
+            iZVec[i] = iZVec[i] + ZsumVec[i];
             // 1) iVec can be split into several parts to simulate the Ambroise-Levi currents;
             // 2) Further lowering sumVec changes behavior somehow.
             
             // Izhikevic
-            //vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
-            //vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
+            vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
+            vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
             
             // Ambroise-Levi
-            vVec[i] = vVec[i]+ALnorm*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i])+iVec[i];
+            //vVec[i] = vVec[i]+ALnorm*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i])+iVec[i];
             
             // Ahmadi-Zwolinski
-            //vVec[i] = vVec[i] + k1[i]*abs(vVec[i]-k2)+k3[i]-uVec[i]+iVec[i];
+            vZVec[i] = vZVec[i] + k1[i]*abs(vZVec[i]-k2)+k3[i]-uZVec[i]+iZVec[i];
             
             // Always the same
             uVec[i] = uVec[i]+aVec[i]*(bVec[i]*vVec[i]-uVec[i]);
+            uZVec[i] = uZVec[i]+aVec[i]*(bVec[i]*vZVec[i]-uZVec[i]);
         }
     }
     printf("Elaboration done. Saving...\n");
-    bmpPrintMat(firings, Ne+Ni, timesteps, argc > 1 ? argv[1] : "primo.bmp");
+    bmpPrintMat(firings, Ne+Ni, timesteps, argc > 1 ? argv[1] : "comp_izhi.bmp");
+    bmpPrintMat(Zfirings, Ne+Ni, timesteps, argc > 2 ? argv[2] : "comp_az.bmp");
     //symPrintMat(firings, Ne+Ni, timesteps);
     doublePrintMat(sampleVTracer, timesteps, 1, 1);
 }

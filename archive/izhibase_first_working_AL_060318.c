@@ -188,9 +188,7 @@ int main(int argc, char* argv[]) {
             }
         }
         for(int i = 0; i<(Ne+Ni); i++) {
-            iVec[i] = iVec[i] + sumVec[i]*ALnorm;
-            // 1) iVec can be split into several parts to simulate the Ambroise-Levi currents;
-            // 2) Further lowering sumVec changes behavior somehow.
+            iVec[i] = iVec[i] + sumVec[i]*ALnorm; // This is easily modified to implement Ambroise-Levi. Values for biasing current are to be found somehow.
             
             // Izhikevic
             //vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
