@@ -1,3 +1,5 @@
 gcc izhibase.c -o runizhi -lm -lmtwist
 
+g++ izhi_objects.cpp -o runobiz -lm -lmtwist -larmadillo -lpng
+
 DEVO FARE UN MAKEFILE
