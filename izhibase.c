@@ -1,7 +1,9 @@
 #include<math.h>
 #include<stdio.h>
 #include<stdlib.h>
+
 #include<time.h>
+
 #include<fcntl.h>
 #include<unistd.h>
 
@@ -17,6 +19,7 @@ void intPrintMat(int mat[], int width, int height) {
         printf("\n");
     }
 }
+
 void doublePrintMat(double mat[], int width, int height, int to_file) {
     if(to_file == 0) {
         for(int j = 0; j<height; j++) {
@@ -34,6 +37,7 @@ void doublePrintMat(double mat[], int width, int height, int to_file) {
         }
     }
 }
+
 void symPrintMat(int mat[], int width, int height) {
     for(int j = 0; j<height; j++) {
         for(int i = 0; i<width; i++) {
@@ -76,6 +80,9 @@ void bmpPrintMat(int mat[], int width, int height, char* filename) {
 
 // This first version goes with 100 neurons. If it works, I'll make it better.
 int main(int argc, char* argv[]) {
+    
+    clock_t beginTime = clock();
+    
     const int Ne = 800;
     const int Ni = 200;
     const int timesteps = 1000;
@@ -167,8 +174,14 @@ int main(int argc, char* argv[]) {
     //doublePrintMat(k1, Ne+Ni, 1);
     //doublePrintMat(k3, Ne+Ni, 1);
     
+    clock_t preProcTime = clock();
+    printf("Time spent pre-processing: %f cycles\n", (double)(preProcTime-beginTime));
+    // Double SHOULD be enough. If it's not, long double.
+    clock_t prevTime = preProcTime;
+    double* iterTimeVec = (double*)malloc(timesteps*sizeof(double));
+    double* neuronTimeVec = (double*)malloc((Ne+Ni)*timesteps*sizeof(double));
+    
     for(int step = 0; step<timesteps; step++) {
-        
         sampleVTracer[step] = vVec[sampleNeuron];
         double sumVec[Ne+Ni];
         for(int j = 0; j<(Ne+Ni); j++) {
@@ -188,6 +201,7 @@ int main(int argc, char* argv[]) {
             }
         }
         for(int i = 0; i<(Ne+Ni); i++) {
+            clock_t firsterm = clock();
             iVec[i] = iVec[i] + sumVec[i]*ALnorm;
             // 1) iVec can be split into several parts to simulate the Ambroise-Levi currents;
             // 2) Further lowering sumVec changes behavior somehow.
@@ -204,10 +218,32 @@ int main(int argc, char* argv[]) {
             
             // Always the same
             uVec[i] = uVec[i]+aVec[i]*(bVec[i]*vVec[i]-uVec[i]);
+            neuronTimeVec[step*timesteps+i] = (double)(clock()-firsterm);
+        }
+        clock_t tstamp = clock();
+        iterTimeVec[step] = (double)(tstamp-prevTime);
+        prevTime = tstamp;
+    }
+    printf("Time spent elaborating: %f cycles\n", (double)(prevTime-preProcTime));
+    printf("Time spent since beginning: %f cycles\n", (double)(prevTime-beginTime));
+    
+    double averagedIter = 0;
+    double averagedNeuron = 0;
+    for (int i = 0; i < timesteps; i++) {
+        averagedIter += iterTimeVec[i];
+        for(int j = 0; j < (Ne+Ni); j++) {
+            averagedNeuron += neuronTimeVec[i*timesteps+j];
         }
     }
+    averagedIter /= timesteps;
+    averagedNeuron /= (timesteps*(Ne+Ni));
+    printf("Average time for an iteration: %f cycles\n", averagedIter);
+    printf("Average time for a neuron: %f cycles\n", averagedNeuron);
+    
     printf("Elaboration done. Saving...\n");
     bmpPrintMat(firings, Ne+Ni, timesteps, argc > 1 ? argv[1] : "primo.bmp");
     //symPrintMat(firings, Ne+Ni, timesteps);
-    doublePrintMat(sampleVTracer, timesteps, 1, 1);
+    //doublePrintMat(sampleVTracer, timesteps, 1, 1);
+    doublePrintMat(neuronTimeVec, (Ne+Ni)*timesteps, 1, 1);
+    
 }
