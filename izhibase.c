@@ -7,20 +7,34 @@
 #include<fcntl.h>
 #include<unistd.h>
 
-// Including the header causes problems, so I'm prototyping here.
-double mt_drand();
-void mt_seed();
+#include <pcg_variants.h>
 
-void intPrintMat(int mat[], int width, int height) {
-    for(int j = 0; j<height; j++) {
-        for(int i = 0; i<width; i++) {
-            printf("%d, ", mat[i+j*width]);
+// Global variable because God has abandoned us
+pcg32_random_t rng;
+
+double drand() {
+    return ldexp(pcg32_random_r(&rng), -32);
+}
+
+void intPrintMat(int mat[], int width, int height, int to_file, char* filename) {
+    if(to_file == 0) {
+        for(int j = 0; j<height; j++) {
+            for(int i = 0; i<width; i++) {
+                printf("%d, ", mat[i+j*width]);
+            }
+            printf("\n");
         }
-        printf("\n");
+    } else {
+        FILE* fp = fopen(filename, "w+");
+        for(int j = 0; j<height; j++) {
+            for(int i = 0; i<width; i++) {
+                fprintf(fp, "%d ", mat[i+j*width]);
+            }
+        }
     }
 }
 
-void doublePrintMat(double mat[], int width, int height, int to_file) {
+void doublePrintMat(double mat[], int width, int height, int to_file, char* filename) {
     if(to_file == 0) {
         for(int j = 0; j<height; j++) {
             for(int i = 0; i<width; i++) {
@@ -29,7 +43,7 @@ void doublePrintMat(double mat[], int width, int height, int to_file) {
             printf("\n");
         }
     } else {
-        FILE* fp = fopen("C_log_test.txt", "w+");
+        FILE* fp = fopen(filename, "w+");
         for(int j = 0; j<height; j++) {
             for(int i = 0; i<width; i++) {
                 fprintf(fp, "%f ", mat[i+j*width]);
@@ -49,8 +63,8 @@ void symPrintMat(int mat[], int width, int height) {
 
 double BMRandom() {
     // Box-Mueller. If I feel lucky, mtwist also has a random dist file.
-    double U = mt_drand();
-    double V = mt_drand();
+    double U = drand();
+    double V = drand();
     return sqrt(-2*log(U))*cos(6.283*V);
 }
 
@@ -91,15 +105,20 @@ int main(int argc, char* argv[]) {
     //1 to activate Ambroise-Levi, 0 to switch it off
     int ALon = 1;
     double ALnorm = 1.0 - 0.21875*ALon;
+
+    uint64_t seeds[2];
+    pcg32_srandom_r(&rng, time(NULL), (intptr_t)&rng);
     
-    mt_seed();
+    //printf(" %d", pcg32_random_r(&rng));
+        
+    //mt_seed();
     time_t t;
     srand((unsigned) time(&t));
 
     /*double sample100[100] = {0.67268635, 0.96309749, 0.55220653, 0.89180605, 0.23468753, 0.81446299, 0.02195218, 0.83865616, 0.32659993, 0.24142225, 0.25734255, 0.91201752, 0.76794863, 0.23790365, 0.98089552, 0.92428144, 0.21600643, 0.83424292, 0.69386298, 0.46489522, 0.014518, 0.01957745, 0.7461725, 0.46113239, 0.61514745, 0.92841833, 0.08349969, 0.95070375, 0.58733038, 0.19839871, 0.25190411, 0.56569044, 0.6211112, 0.92418393, 0.72089119, 0.36120168, 0.25103747, 0.77158686, 0.71478856, 0.89871678, 0.90135932, 0.7473526, 0.22538937, 0.51225528, 0.56152225, 0.93567016, 0.63801067, 0.95226071, 0.73292152, 0.18399366, 0.1024284, 0.99834277, 0.56280422, 0.01583075, 0.06538782, 0.4483554, 0.99148011, 0.01410149, 0.81852111, 0.8343277, 0.93690884, 0.99741748, 0.29923517, 0.79460516, 0.51615389, 0.14538083, 0.04862664, 0.62384621, 0.59551652, 0.9189782, 0.89446678, 0.49094778, 0.18917208, 0.3231677, 0.34190464, 0.7116547, 0.49402238, 0.2225873, 0.15917861, 0.73371542, 0.69298251, 0.57648452, 0.64508938, 0.42175717, 0.62483895, 0.36801571, 0.76858529, 0.31535117, 0.009977 , 0.46877673, 0.94155195, 0.20507172, 0.52609205, 0.36366941, 0.76585519, 0.94148786, 0.42066063, 0.06366899, 0.43467719, 0.05397984};*/
     double *sample = (double*)malloc((Ne+Ni)*sizeof(double));
     for (int i = 0; i<(Ne+Ni); i++) {
-        sample[i] = mt_drand();
+        sample[i] = drand();
         //sample[i] = ((double)rand()/RAND_MAX);
     }
 
@@ -139,7 +158,7 @@ int main(int argc, char* argv[]) {
         vVec[i] = -65;
         uVec[i] = bVec[i]*vVec[i];
         for(int j = 0; j<(Ne+Ni); j++) {
-            sMat[i+j*(Ne+Ni)] = 0.5*mt_drand();
+            sMat[i+j*(Ne+Ni)] = 0.5*drand();
             //sMat[i+j*(Ne+Ni)] = 0.5*((double)rand()/RAND_MAX);
         }
     }
@@ -161,7 +180,7 @@ int main(int argc, char* argv[]) {
         vVec[i] = -65;
         uVec[i] = bVec[i]*vVec[i];
         for(int j = 0; j<(Ne+Ni); j++) {
-            sMat[i+j*(Ne+Ni)] = -1*mt_drand();
+            sMat[i+j*(Ne+Ni)] = -1*drand();
             //sMat[i+j*(Ne+Ni)] = -1*((double)rand()/RAND_MAX);
         }
     }
@@ -244,6 +263,15 @@ int main(int argc, char* argv[]) {
     bmpPrintMat(firings, Ne+Ni, timesteps, argc > 1 ? argv[1] : "primo.bmp");
     //symPrintMat(firings, Ne+Ni, timesteps);
     //doublePrintMat(sampleVTracer, timesteps, 1, 1);
-    doublePrintMat(neuronTimeVec, (Ne+Ni)*timesteps, 1, 1);
-    
+    //doublePrintMat(neuronTimeVec, (Ne+Ni)*timesteps, 1, 1);
+    int* histogram = (int*)malloc(timesteps*sizeof(int));
+    for(int i = 0; i<timesteps; i++) {
+        histogram[i] = 0;
+        for(int j = 0; j<(Ne+Ni); j++) {
+            if(firings[i * (Ne + Ni) + j] == 1) {
+                histogram[i]++;
+            }
+        }
+    }
+    intPrintMat(histogram, timesteps, 1, 1, "C_log_hist.txt");
 }

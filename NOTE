@@ -13,7 +13,6 @@ BAD NEWS:
 
 - Sto usando la libreria custom mtwist, linkarstaticamente se necessario. Info nell'header sotto /usr/include/mtwist
 
-TODO:
 - Topologia fissata, parallelo izhikevich e AZ
 - Slackare differenze, moltiplicazione di k1, media
 
@@ -22,8 +21,5 @@ Time logging:
 - Update di neurone singolo
 - Update di rete intera
 
-Versione C++ col neurone come oggetto (did)
-
-Le reti ffwd e hebbiane
-
-Repo git (did)
+TODO
+-- Distribuzione di probabilità per ogni istante t di tempo

@@ -2,7 +2,8 @@
 #include<cstdlib>
 #include<cmath>
 #include<string>
-#include<mtwist/mtwist.h>
+
+#include <pcg_variants.h>
 
 //To save output
 #include <png++/png.hpp>
@@ -14,6 +15,21 @@
 
 using namespace std;
 
+// Global variable because God has abandoned us
+pcg32_random_t rng;
+
+double drand() {
+    return ldexp(pcg32_random_r(&rng), -32);
+}
+
+void symPrintMat(arma::mat toprint, int width, int height) {
+    for(int j = 0; j<height; j++) {
+        for(int i = 0; i<width; i++) {
+            cout << (toprint(i,j) == 1 ? "#" : ".");
+        }
+        cout << endl;
+    }
+}
 
 void pngPrintMat(arma::mat toprint, int width, int height, string filename) {
     png::image< png::rgb_pixel > image(width, height);
@@ -30,8 +46,8 @@ void pngPrintMat(arma::mat toprint, int width, int height, string filename) {
 
 double BMRandom() {
     // Box-Mueller. mtwist is enigmatic as ever.
-    double U = mt_drand();
-    double V = mt_drand();
+    double U = drand();
+    double V = drand();
     return sqrt(-2*log(U))*cos(6.283*V);
 }
 
@@ -74,12 +90,12 @@ void izhiNeuron::update(double I){
 izhiNeuron** paperStructure(int Ne, int Ni) {
     izhiNeuron** out = (izhiNeuron**)malloc((Ne+Ni)*sizeof(izhiNeuron*));
     for(int i = 0; i < Ne; i++) {
-        double re = mt_drand();
+        double re = drand();
         izhiNeuron* tmpn = new izhiNeuron(0.02, 0.2, -65+15*pow(re, 2), 8-6*pow(re,2));
         out[i] = tmpn;
     }
     for (int i = Ne; i < Ne+Ni; i++) {
-        double ri = mt_drand();
+        double ri = drand();
         izhiNeuron* tmpn = new izhiNeuron(0.02+0.08*ri, 0.25-0.05*ri, -65, 2);
         out[i] = tmpn;
     }
@@ -90,17 +106,19 @@ arma::mat randomConnMat(int Ne, int Ni) {
     arma::mat S = arma::mat(Ne+Ni, Ne+Ni);
     for(int i = 0; i < Ne+Ni; i++) {
         for(int j = 0; j < Ne; j++) {
-            S(j,i) = 0.5*mt_drand();
+            S(j,i) = 0.5*drand();
         }
         for(int j = Ne; j < Ne+Ni; j++) {
-            S(j,i) = -1*mt_drand();
+            S(j,i) = -1*drand();
         }
     }
     return S;
 }
 
 int main(int argc, char* argv[]) {
-    mt_seed();
+    
+    uint64_t seeds[2];
+    pcg32_srandom_r(&rng, time(NULL), (intptr_t)&rng);
     
     cout << "Beginning execution" << endl;
     
@@ -124,16 +142,23 @@ int main(int argc, char* argv[]) {
         if(step%100 == 0)
             cout << "Step " << step+1 << endl;
         for(int i = 0; i < Ne+Ni; i++) {
-            I(i) = (i < Ne ? 5 : 2)*BMRandom();
+            // NOTE: This is Izhikevic's method. Ambroise-Levi suggests a different way to adapt it.
+            I(i) = (i < Ne ? 0 : 0)*BMRandom();
             fired(i) = sample[i]->getFired() ? 1 : 0;
             firings(step, i) = fired[i];
         }
         tmp = fired*S;
-        I += tmp;
+        //I += tmp;
         for(int i = 0; i < Ne+Ni; i++) {
             sample[i]->update(I[i]);
         }
     }
     cout << "Saving..." << endl;
-    pngPrintMat(firings, Ne+Ni, timelimit, "cpp.png");
+    string graphname = "";
+    if(argc>1) {
+        graphname = argv[1];
+    } else {
+        graphname = "cpp.png";
+    }
+    pngPrintMat(firings, Ne+Ni, timelimit, graphname);
 }
