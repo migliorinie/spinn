@@ -230,10 +230,10 @@ int main(int argc, char* argv[]) {
             //vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
             
             // Ambroise-Levi
-            vVec[i] = vVec[i]+ALnorm*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i])+iVec[i];
+            //vVec[i] = vVec[i]+ALnorm*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i])+iVec[i];
             
             // Ahmadi-Zwolinski
-            //vVec[i] = vVec[i] + k1[i]*abs(vVec[i]-k2)+k3[i]-uVec[i]+iVec[i];
+            vVec[i] = vVec[i] + k1[i]*abs(vVec[i]-k2)+k3[i]-uVec[i]+iVec[i];
             
             // Always the same
             uVec[i] = uVec[i]+aVec[i]*(bVec[i]*vVec[i]-uVec[i]);

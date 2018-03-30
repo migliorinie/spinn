@@ -1,4 +1,4 @@
-TARGETS = runizhi runobizhi
+TARGETS = runizhi cpp/runobiz
 
 CC = gcc
 LDLIBS   += -lm -lpcg_random
@@ -11,5 +11,5 @@ clean:
 runizhi: izhibase.c
 	$(CC) izhibase.c -o runizhi $(LDLIBS) $(CPPFLAGS)
 
-runobizhi: cpp/izhi_objects.cpp
+cpp/runobiz: cpp/izhi_objects.cpp
 	g++ cpp/izhi_objects.cpp -o cpp/runobiz -lm -lpcg_random -larmadillo -lpng

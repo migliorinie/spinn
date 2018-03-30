@@ -9,12 +9,21 @@
 double mt_drand();
 void mt_seed();
 
-void intPrintMat(int mat[], int width, int height) {
-    for(int j = 0; j<height; j++) {
-        for(int i = 0; i<width; i++) {
-            printf("%d, ", mat[i+j*width]);
+void intPrintMat(int mat[], int width, int height, int to_file, char* filename) {
+    if(to_file == 0) {
+        for(int j = 0; j<height; j++) {
+            for(int i = 0; i<width; i++) {
+                printf("%d, ", mat[i+j*width]);
+            }
+            printf("\n");
         }
-        printf("\n");
+    } else {
+        FILE* fp = fopen(filename, "w+");
+        for(int j = 0; j<height; j++) {
+            for(int i = 0; i<width; i++) {
+                fprintf(fp, "%d ", mat[i+j*width]);
+            }
+        }
     }
 }
 void doublePrintMat(double mat[], int width, int height, int to_file) {
@@ -82,8 +91,8 @@ int main(int argc, char* argv[]) {
     const int sampleNeuron = 96;
     
     //1 to activate Ambroise-Levi, 0 to switch it off
-    //int ALon = 1;
-    //double ALnorm = 1.0 - 0.21875*ALon;
+    int ALon = 1;
+    double ALnorm = 1.0 - 0.21875*ALon;
     
     mt_seed();
     time_t t;
@@ -136,7 +145,7 @@ int main(int argc, char* argv[]) {
 
         vVec[i] = -65;
         uVec[i] = bVec[i]*vVec[i];
-        vZVec[i] = -65;
+        vZVec[i] = -65*ALnorm;
         uZVec[i] = bVec[i]*vVec[i];
         for(int j = 0; j<(Ne+Ni); j++) {
             sMat[i+j*(Ne+Ni)] = 0.5*mt_drand();
@@ -160,7 +169,7 @@ int main(int argc, char* argv[]) {
 
         vVec[i] = -65;
         uVec[i] = bVec[i]*vVec[i];
-        vZVec[i] = -65;
+        vZVec[i] = -65*ALnorm;
         uZVec[i] = bVec[i]*vVec[i];
         for(int j = 0; j<(Ne+Ni); j++) {
             sMat[i+j*(Ne+Ni)] = -1*mt_drand();
@@ -195,7 +204,7 @@ int main(int argc, char* argv[]) {
             firings[step * (Ne + Ni) + i] = fired[i];
             
             iZVec[i] = (i < Ne ? 5 : 2)*BMRandom();
-            Zfired[i] = vZVec[i] > 30.0 ? 1 : 0;
+            Zfired[i] = vZVec[i] > 30.0*ALnorm ? 1 : 0;
             Zfirings[step * (Ne + Ni) + i] = Zfired[i];
 
             if (fired[i] == 1) {
@@ -206,7 +215,7 @@ int main(int argc, char* argv[]) {
                 }
             }
             if (Zfired[i] == 1) {
-                vZVec[i] = cVec[i];
+                vZVec[i] = cVec[i]*ALnorm;
                 uZVec[i] += dVec[i];
                 for (int j = 0; j < Ne + Ni; j++) {
                     ZsumVec[j] += sMat[i + j * (Ne + Ni)];
@@ -215,28 +224,49 @@ int main(int argc, char* argv[]) {
         }
         for(int i = 0; i<(Ne+Ni); i++) {
             iVec[i] = iVec[i] + sumVec[i];
+            // Remember to flip ALon if I want to get back to AZ
             iZVec[i] = iZVec[i] + ZsumVec[i];
             // 1) iVec can be split into several parts to simulate the Ambroise-Levi currents;
             // 2) Further lowering sumVec changes behavior somehow.
             
             // Izhikevic
-            vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
-            vVec[i] = vVec[i]+0.5*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
+            vVec[i] = vVec[i]+(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i]+iVec[i]);
             
             // Ambroise-Levi
-            //vVec[i] = vVec[i]+ALnorm*(0.04*pow(vVec[i], 2)+5*vVec[i]+140-uVec[i])+iVec[i];
+            vZVec[i] = vZVec[i]+(0.04*pow(vZVec[i], 2)+5*vZVec[i]+140-uZVec[i]+iZVec[i]);
             
             // Ahmadi-Zwolinski
-            vZVec[i] = vZVec[i] + k1[i]*abs(vZVec[i]-k2)+k3[i]-uZVec[i]+iZVec[i];
+            //vZVec[i] = vZVec[i] + k1[i]*abs(vZVec[i]-k2)+k3[i]-uZVec[i]+iZVec[i];
             
             // Always the same
             uVec[i] = uVec[i]+aVec[i]*(bVec[i]*vVec[i]-uVec[i]);
-            uZVec[i] = uZVec[i]+aVec[i]*(bVec[i]*vZVec[i]-uZVec[i]);
+            uZVec[i] = uZVec[i]+(aVec[i]*(bVec[i]*vZVec[i]-uZVec[i]));
         }
     }
     printf("Elaboration done. Saving...\n");
     bmpPrintMat(firings, Ne+Ni, timesteps, argc > 1 ? argv[1] : "comp_izhi.bmp");
-    bmpPrintMat(Zfirings, Ne+Ni, timesteps, argc > 2 ? argv[2] : "comp_az.bmp");
+    bmpPrintMat(Zfirings, Ne+Ni, timesteps, argc > 2 ? argv[2] : "comp_al.bmp");
     //symPrintMat(firings, Ne+Ni, timesteps);
-    doublePrintMat(sampleVTracer, timesteps, 1, 1);
+    //doublePrintMat(sampleVTracer, timesteps, 1, 1);
+    
+    int* histogram = (int*)malloc(timesteps*sizeof(int));
+    for(int i = 0; i<timesteps; i++) {
+        histogram[i] = 0;
+        for(int j = 0; j<(Ne+Ni); j++) {
+            if(firings[i * (Ne + Ni) + j] == 1) {
+                histogram[i]++;
+            }
+        }
+    }
+    int* Zhistogram = (int*)malloc(timesteps*sizeof(int));
+    for(int i = 0; i<timesteps; i++) {
+        Zhistogram[i] = 0;
+        for(int j = 0; j<(Ne+Ni); j++) {
+            if(Zfirings[i * (Ne + Ni) + j] == 1) {
+                Zhistogram[i]++;
+            }
+        }
+    }
+    intPrintMat(histogram, timesteps, 1, 1, "C_log_hist_izhi.txt");
+    intPrintMat(Zhistogram, timesteps, 1, 1, "C_log_hist_AL.txt");
 }

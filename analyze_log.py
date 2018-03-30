@@ -1,22 +1,67 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.optimize as opt
-import sys
 
-# Sadly, there isn't a better way to write a sum of sinusoids
-def func(x, a0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7, a8, b8, a9, b9, a10, b10):
-    return a0 + a1*np.cos((x/1000)*2*np.pi*1) + b1*np.sin((x/1000)*2*np.pi*1) + a2*np.cos((x/1000)*2*np.pi*2) + b2*np.sin((x/1000)*2*np.pi*2) + a3*np.cos((x/1000)*2*np.pi*3) + b3*np.sin((x/1000)*2*np.pi*3) + a4*np.cos((x/1000)*2*np.pi*4) + b4*np.sin((x/1000)*2*np.pi*4) + a5*np.cos((x/1000)*2*np.pi*5) + b5*np.sin((x/1000)*2*np.pi*5) + a6*np.cos((x/1000)*2*np.pi*6) + b6*np.sin((x/1000)*2*np.pi*6) + a7*np.cos((x/1000)*2*np.pi*7) + b7*np.sin((x/1000)*2*np.pi*7) + a8*np.cos((x/1000)*2*np.pi*8) + b8*np.sin((x/1000)*2*np.pi*8) + a9*np.cos((x/1000)*2*np.pi*9) + b9*np.sin((x/1000)*2*np.pi*9) + a10*np.cos((x/1000)*2*np.pi*10) + b10*np.sin((x/1000)*2*np.pi*10)
+import scipy.fftpack as fft
+from scipy.stats.stats import pearsonr
 
-handle = open(sys.argv[1])
+import argparse
 
-x_arr = np.linspace(0, 1000, 1000)
-y_arr = np.asarray([float(i) for i in handle.readline().split(" ")[:-1]])
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('file', metavar='file', type=str, help='the file to analyze')
+#parser.add_argument('-o', dest='output', help='the output file')
+parser.add_argument('-c', dest='comparison', type=str, help='the file to compare')
+parser.add_argument('-d', dest='display', action='store_true', help='graphically display the results')
+parser.add_argument('--plots', dest='plots', action='store_true', help='display the original arrays')
 
-popt, popcv = opt.curve_fit(func, x_arr, y_arr)
+args = parser.parse_args()
 
-# Overfitting yay!
-prarr = [popt[0] + popt[1]*np.cos((x/1000)*2*np.pi*1) + popt[2]*np.sin((x/1000)*2*np.pi*1) + popt[3]*np.cos((x/1000)*2*np.pi*2) + popt[4]*np.sin((x/1000)*2*np.pi*2) + popt[5]*np.cos((x/1000)*2*np.pi*3) + popt[6]*np.sin((x/1000)*2*np.pi*3) + popt[7]*np.cos((x/1000)*2*np.pi*4) + popt[8]*np.sin((x/1000)*2*np.pi*4) + popt[9]*np.cos((x/1000)*2*np.pi*5) + popt[10]*np.sin((x/1000)*2*np.pi*5) + popt[11]*np.cos((x/1000)*2*np.pi*6) + popt[12]*np.sin((x/1000)*2*np.pi*6) + popt[13]*np.cos((x/1000)*2*np.pi*7) + popt[14]*np.sin((x/1000)*2*np.pi*7) + popt[15]*np.cos((x/1000)*2*np.pi*8) + popt[16]*np.sin((x/1000)*2*np.pi*8) + popt[17]*np.cos((x/1000)*2*np.pi*9) + popt[18]*np.sin((x/1000)*2*np.pi*9) + popt[19]*np.cos((x/1000)*2*np.pi*10) + popt[20]*np.sin((x/1000)*2*np.pi*10) for x in x_arr]
+cutoff = 50
+   
+try:
+    handle = open(args.file)
 
-plt.plot(prarr)
-plt.plot(y_arr)
-plt.show()
+    y_arr = np.asarray([float(i) for i in handle.readline().split(" ")[:-1]])
+
+    fourarr = fft.rfft(y_arr)
+    selarr = [0 for i in fourarr]
+    selarr[:cutoff] = fourarr[:cutoff]
+    adarr = fft.irfft(selarr)
+except FileNotFoundError as e:
+    print("Invalid input file!")
+
+if args.comparison is not None:
+    try:
+        chandle = open(args.comparison)
+        cy_arr = np.asarray([float(i) for i in chandle.readline().split(" ")[:-1]])
+
+        cfourarr = fft.rfft(cy_arr)
+        cselarr = [0 for i in cfourarr]
+        cselarr[:cutoff] = cfourarr[:cutoff]
+        cadarr = fft.irfft(cselarr)
+        
+        print("Pearson's correlation coefficient for the reconstructions:")
+        print("----------------------------------")
+        print(pearsonr(adarr, cadarr))
+        print("Pearson's correlation coefficient for the coefficients:")
+        print("----------------------------------")
+        print(pearsonr(selarr[:cutoff], cselarr[:cutoff]))
+    except FileNotFoundError as e:
+        print("Invalid comparison file!")
+
+#plt.plot(fourarr, "b")
+#plt.plot(selarr, "r")
+
+if args.plots and args.comparison:
+    plt.plot(y_arr, "b")
+    plt.plot(cy_arr, "r")
+    plt.show()
+
+if args.display:
+    if args.comparison is None:
+        plt.plot(y_arr, "b")
+        plt.plot(adarr, "r")
+        plt.show()
+    else:
+        plt.plot(adarr, "b")
+        plt.plot(cadarr, "r")
+        plt.show()
